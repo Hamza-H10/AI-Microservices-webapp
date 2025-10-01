@@ -111,7 +111,7 @@ async def get_metrics():
     # Get system metrics
     cpu_percent = psutil.cpu_percent(interval=0.1)
     memory = psutil.virtual_memory()
-    
+
     # GPU metrics if available
     gpu_metrics = {}
     if torch.cuda.is_available():
@@ -125,10 +125,10 @@ async def get_metrics():
         }
     else:
         gpu_metrics = {"gpu_available": False}
-    
+
     # Calculate uptime
     uptime_seconds = time.time() - metrics["startup_time"]
-    
+
     return {
         "timestamp": datetime.now().isoformat(),
         "uptime_seconds": round(uptime_seconds, 2),
@@ -161,23 +161,24 @@ async def get_metrics():
 async def analyze_sentiment(text_input: TextInput):
     """Analyze sentiment of a single text."""
     start_time = time.time()
-    
+
     if classifier is None:
         raise HTTPException(status_code=503, detail="Model not loaded")
 
     try:
         # Count tokens (rough approximation)
         token_count = len(text_input.text.split())
-        
+
         result = classifier(text_input.text)[0]
-        
+
         # Update metrics
         processing_time = time.time() - start_time
         metrics["total_requests"] += 1
         metrics["total_tokens_processed"] += token_count
         metrics["total_processing_time"] += processing_time
         metrics["requests_per_endpoint"]["analyze"] += 1
-        metrics["average_response_time"] = metrics["total_processing_time"] / metrics["total_requests"]
+        metrics["average_response_time"] = metrics["total_processing_time"] / \
+            metrics["total_requests"]
 
         return SentimentResponse(
             text=text_input.text,
