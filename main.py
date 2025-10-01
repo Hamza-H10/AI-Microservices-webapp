@@ -6,6 +6,10 @@ import torch
 from typing import List
 import uvicorn
 from datetime import datetime
+import psutil
+import time
+import threading
+from collections import defaultdict
 
 # Initialize FastAPI app for microservices
 app = FastAPI(
@@ -25,6 +29,17 @@ app.add_middleware(
 
 # Global variable to store the model
 classifier = None
+
+# Metrics tracking
+metrics = {
+    "total_requests": 0,
+    "total_tokens_processed": 0,
+    "total_processing_time": 0.0,
+    "requests_per_endpoint": defaultdict(int),
+    "average_response_time": 0.0,
+    "model_load_time": 0.0,
+    "startup_time": time.time()
+}
 
 
 class TextInput(BaseModel):
@@ -90,14 +105,79 @@ async def health_check():
     }
 
 
+@app.get("/metrics")
+async def get_metrics():
+    """Get system metrics and performance stats."""
+    # Get system metrics
+    cpu_percent = psutil.cpu_percent(interval=0.1)
+    memory = psutil.virtual_memory()
+    
+    # GPU metrics if available
+    gpu_metrics = {}
+    if torch.cuda.is_available():
+        gpu_metrics = {
+            "gpu_available": True,
+            "gpu_name": torch.cuda.get_device_name(0),
+            "gpu_memory_allocated": torch.cuda.memory_allocated(0),
+            "gpu_memory_reserved": torch.cuda.memory_reserved(0),
+            "gpu_memory_total": torch.cuda.get_device_properties(0).total_memory,
+            "gpu_utilization": torch.cuda.utilization(0) if hasattr(torch.cuda, 'utilization') else "N/A"
+        }
+    else:
+        gpu_metrics = {"gpu_available": False}
+    
+    # Calculate uptime
+    uptime_seconds = time.time() - metrics["startup_time"]
+    
+    return {
+        "timestamp": datetime.now().isoformat(),
+        "uptime_seconds": round(uptime_seconds, 2),
+        "system": {
+            "cpu_percent": cpu_percent,
+            "memory_total_gb": round(memory.total / (1024**3), 2),
+            "memory_used_gb": round(memory.used / (1024**3), 2),
+            "memory_percent": memory.percent,
+            "disk_usage": dict(psutil.disk_usage('/')._asdict()) if hasattr(psutil, 'disk_usage') else {}
+        },
+        "gpu": gpu_metrics,
+        "performance": {
+            "total_requests": metrics["total_requests"],
+            "total_tokens_processed": metrics["total_tokens_processed"],
+            "total_processing_time": round(metrics["total_processing_time"], 3),
+            "average_response_time": round(metrics["average_response_time"], 3),
+            "requests_per_endpoint": dict(metrics["requests_per_endpoint"]),
+            "requests_per_second": round(metrics["total_requests"] / max(uptime_seconds, 1), 2)
+        },
+        "model": {
+            "name": "distilbert-base-uncased-finetuned-sst-2-english",
+            "device": "GPU (CUDA)" if torch.cuda.is_available() else "CPU",
+            "loaded": classifier is not None,
+            "load_time": metrics["model_load_time"]
+        }
+    }
+
+
 @app.post("/analyze", response_model=SentimentResponse)
 async def analyze_sentiment(text_input: TextInput):
     """Analyze sentiment of a single text."""
+    start_time = time.time()
+    
     if classifier is None:
         raise HTTPException(status_code=503, detail="Model not loaded")
 
     try:
+        # Count tokens (rough approximation)
+        token_count = len(text_input.text.split())
+        
         result = classifier(text_input.text)[0]
+        
+        # Update metrics
+        processing_time = time.time() - start_time
+        metrics["total_requests"] += 1
+        metrics["total_tokens_processed"] += token_count
+        metrics["total_processing_time"] += processing_time
+        metrics["requests_per_endpoint"]["analyze"] += 1
+        metrics["average_response_time"] = metrics["total_processing_time"] / metrics["total_requests"]
 
         return SentimentResponse(
             text=text_input.text,

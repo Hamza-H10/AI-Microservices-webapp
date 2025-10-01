@@ -219,25 +219,100 @@ Visit `http://localhost:3000` and try the sentiment analysis interface.
 
 ## 🐳 Docker Support
 
-### Docker Compose (Recommended)
+### Prerequisites for Docker
+
+- **Docker** (v20.10 or higher)
+- **Docker Compose** (v2.0 or higher)
+- **NVIDIA Docker** (for GPU support) - Install [nvidia-container-toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html)
+
+### Quick Start with Docker
+
+1. **Clone and navigate to the project**:
+
+   ```bash
+   git clone https://github.com/Hamza-H10/AI-Microservices-webapp.git
+   cd AI-Microservices-webapp
+   ```
+
+2. **Build and run with Docker Compose**:
+
+   ```bash
+   docker-compose up --build
+   ```
+
+3. **Access the services**:
+   - Web Interface: `http://localhost:3000`
+   - AI API: `http://localhost:8000`
+   - API Docs: `http://localhost:8000/docs`
+
+### Docker Commands
+
+```bash
+# Build and start all services
+docker-compose up --build
+
+# Start services in background
+docker-compose up -d
+
+# Stop all services
+docker-compose down
+
+# View logs
+docker-compose logs -f
+
+# View logs for specific service
+docker-compose logs -f ai-service
+docker-compose logs -f web-service
+
+# Rebuild specific service
+docker-compose build ai-service
+docker-compose build web-service
+
+# Run without GPU support (CPU only)
+docker-compose -f docker-compose.yml up --build
+```
+
+### Individual Service Builds
+
+**AI Service (FastAPI)**:
+
+```bash
+docker build -f Dockerfile.ai -t sentiment-ai-service .
+docker run -p 8000:8000 --gpus all sentiment-ai-service
+```
+
+**Web Service (Node.js)**:
+
+```bash
+docker build -f Dockerfile.web -t sentiment-web-service .
+docker run -p 3000:3000 sentiment-web-service
+```
+
+### Docker Architecture
+
+The application uses a multi-container setup:
+
+- **`ai-service`**: Python FastAPI with CUDA support (Dockerfile.ai)
+- **`web-service`**: Node.js/Express with TypeScript (Dockerfile.web)
+- **Network**: Bridge network for inter-service communication
+- **Volumes**: Model caching for improved performance
+- **Health Checks**: Automatic service health monitoring
+
+### GPU Support in Docker
+
+The configuration includes NVIDIA GPU support for accelerated inference:
 
 ```yaml
-version: "3.8"
-services:
-  ai-service:
-    build: .
-    ports:
-      - "8000:8000"
-    command: python main.py
-
-  web-service:
-    build: .
-    ports:
-      - "3000:3000"
-    command: npm start
-    depends_on:
-      - ai-service
+deploy:
+  resources:
+    reservations:
+      devices:
+        - driver: nvidia
+          count: 1
+          capabilities: [gpu]
 ```
+
+For CPU-only deployment, remove the `deploy` section from `docker-compose.yml`.
 
 ## 🤝 Contributing
 

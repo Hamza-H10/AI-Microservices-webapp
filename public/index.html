@@ -137,6 +137,114 @@
             margin: 20px 0;
             font-size: 14px;
         }
+        
+        /* Metrics Panel Styles */
+        .metrics-panel {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 320px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            font-size: 12px;
+            z-index: 1000;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .metrics-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .metrics-toggle {
+            background: none;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+            padding: 2px;
+            border-radius: 4px;
+        }
+        
+        .metrics-toggle:hover {
+            background: rgba(0, 0, 0, 0.1);
+        }
+        
+        .metric-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+            padding: 2px 0;
+        }
+        
+        .metric-label {
+            color: #666;
+            font-weight: 500;
+        }
+        
+        .metric-value {
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 5px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            transition: width 0.3s ease;
+            border-radius: 4px;
+        }
+        
+        .progress-cpu { background: linear-gradient(90deg, #4CAF50, #FFC107, #F44336); }
+        .progress-memory { background: linear-gradient(90deg, #2196F3, #9C27B0); }
+        .progress-gpu { background: linear-gradient(90deg, #FF9800, #E91E63); }
+        
+        .metrics-section {
+            margin: 10px 0;
+            padding: 8px 0;
+            border-top: 1px solid rgba(0, 0, 0, 0.1);
+        }
+        
+        .metrics-section:first-child {
+            border-top: none;
+        }
+        
+        .section-title {
+            font-weight: bold;
+            color: #444;
+            margin-bottom: 5px;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+        
+        .status-online { background: #4CAF50; }
+        .status-offline { background: #F44336; }
+        .status-warning { background: #FFC107; }
+        
         @media (max-width: 768px) {
             .charts-container {
                 grid-template-columns: 1fr;
@@ -145,10 +253,97 @@
                 flex-direction: column;
                 align-items: center;
             }
+            .metrics-panel {
+                position: relative;
+                top: 0;
+                right: 0;
+                width: 100%;
+                margin: 20px 0;
+            }
         }
     </style>
 </head>
 <body>
+    <!-- Metrics Panel -->
+    <div id="metricsPanel" class="metrics-panel">
+        <div class="metrics-header">
+            <span>📊 System Metrics</span>
+            <button class="metrics-toggle" onclick="toggleMetrics()">📌</button>
+        </div>
+        
+        <div class="metrics-section">
+            <div class="section-title">System Performance</div>
+            <div class="metric-row">
+                <span class="metric-label">CPU Usage:</span>
+                <span id="cpuValue" class="metric-value">--</span>
+            </div>
+            <div class="progress-bar">
+                <div id="cpuProgress" class="progress-fill progress-cpu" style="width: 0%"></div>
+            </div>
+            
+            <div class="metric-row">
+                <span class="metric-label">Memory:</span>
+                <span id="memoryValue" class="metric-value">--</span>
+            </div>
+            <div class="progress-bar">
+                <div id="memoryProgress" class="progress-fill progress-memory" style="width: 0%"></div>
+            </div>
+            
+            <div id="gpuSection" class="gpu-metrics" style="display: none;">
+                <div class="metric-row">
+                    <span class="metric-label">GPU:</span>
+                    <span id="gpuValue" class="metric-value">--</span>
+                </div>
+                <div class="progress-bar">
+                    <div id="gpuProgress" class="progress-fill progress-gpu" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="metrics-section">
+            <div class="section-title">AI Service Stats</div>
+            <div class="metric-row">
+                <span class="metric-label">
+                    <span class="status-indicator" id="aiStatusIndicator"></span>
+                    Status:
+                </span>
+                <span id="aiServiceStatus" class="metric-value">--</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">Requests:</span>
+                <span id="totalRequests" class="metric-value">--</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">Tokens Processed:</span>
+                <span id="totalTokens" class="metric-value">--</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">Avg Response:</span>
+                <span id="avgResponse" class="metric-value">--</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">Uptime:</span>
+                <span id="uptime" class="metric-value">--</span>
+            </div>
+        </div>
+        
+        <div class="metrics-section">
+            <div class="section-title">Last Request</div>
+            <div class="metric-row">
+                <span class="metric-label">Tokens:</span>
+                <span id="lastTokens" class="metric-value">--</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">Time:</span>
+                <span id="lastTime" class="metric-value">--</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">Model:</span>
+                <span id="modelDevice" class="metric-value">--</span>
+            </div>
+        </div>
+    </div>
+
     <div class="container">
         <h1>Sentiment Analysis Tool</h1>
         
@@ -247,6 +442,121 @@
             });
         }
 
+        // Metrics tracking variables
+        let metricsInterval;
+        let lastRequestTokens = 0;
+        let lastRequestTime = 0;
+        let isPanelPinned = false;
+
+        // Toggle metrics panel visibility
+        function toggleMetrics() {
+            const panel = document.getElementById('metricsPanel');
+            const toggle = panel.querySelector('.metrics-toggle');
+            
+            if (isPanelPinned) {
+                panel.style.display = 'none';
+                toggle.textContent = '📊';
+                isPanelPinned = false;
+                if (metricsInterval) {
+                    clearInterval(metricsInterval);
+                    metricsInterval = null;
+                }
+            } else {
+                panel.style.display = 'block';
+                toggle.textContent = '📌';
+                isPanelPinned = true;
+                startMetricsUpdates();
+            }
+        }
+
+        // Fetch metrics from backend
+        async function fetchMetrics() {
+            try {
+                const response = await fetch('/api/metrics');
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                const metrics = await response.json();
+                updateMetricsDisplay(metrics);
+            } catch (error) {
+                console.error('Failed to fetch metrics:', error);
+                updateMetricsDisplay(null);
+            }
+        }
+
+        // Update metrics display
+        function updateMetricsDisplay(metrics) {
+            if (!metrics) {
+                document.getElementById('aiServiceStatus').textContent = 'Offline';
+                document.getElementById('aiStatusIndicator').className = 'status-indicator status-offline';
+                return;
+            }
+
+            // System metrics
+            const cpu = metrics.system.cpu_percent;
+            const memory = metrics.system.memory_percent;
+            
+            document.getElementById('cpuValue').textContent = `${cpu.toFixed(1)}%`;
+            document.getElementById('cpuProgress').style.width = `${cpu}%`;
+            
+            document.getElementById('memoryValue').textContent = 
+                `${metrics.system.memory_used_gb}GB / ${metrics.system.memory_total_gb}GB (${memory.toFixed(1)}%)`;
+            document.getElementById('memoryProgress').style.width = `${memory}%`;
+
+            // GPU metrics
+            if (metrics.gpu.gpu_available) {
+                document.getElementById('gpuSection').style.display = 'block';
+                const gpuMemUsed = (metrics.gpu.gpu_memory_allocated / 1024 / 1024 / 1024).toFixed(1);
+                const gpuMemTotal = (metrics.gpu.gpu_memory_total / 1024 / 1024 / 1024).toFixed(1);
+                const gpuPercent = (metrics.gpu.gpu_memory_allocated / metrics.gpu.gpu_memory_total * 100);
+                
+                document.getElementById('gpuValue').textContent = 
+                    `${gpuMemUsed}GB / ${gpuMemTotal}GB (${gpuPercent.toFixed(1)}%)`;
+                document.getElementById('gpuProgress').style.width = `${gpuPercent}%`;
+            } else {
+                document.getElementById('gpuSection').style.display = 'none';
+            }
+
+            // AI Service metrics
+            document.getElementById('aiServiceStatus').textContent = 'Online';
+            document.getElementById('aiStatusIndicator').className = 'status-indicator status-online';
+            document.getElementById('totalRequests').textContent = metrics.performance.total_requests.toLocaleString();
+            document.getElementById('totalTokens').textContent = metrics.performance.total_tokens_processed.toLocaleString();
+            document.getElementById('avgResponse').textContent = `${metrics.performance.average_response_time}ms`;
+            
+            // Format uptime
+            const uptimeHours = Math.floor(metrics.uptime_seconds / 3600);
+            const uptimeMinutes = Math.floor((metrics.uptime_seconds % 3600) / 60);
+            document.getElementById('uptime').textContent = `${uptimeHours}h ${uptimeMinutes}m`;
+
+            // Model info
+            const device = metrics.gpu.gpu_available ? `GPU (${metrics.gpu.gpu_name.split(' ')[0]})` : 'CPU';
+            document.getElementById('modelDevice').textContent = device;
+
+            // Last request info
+            document.getElementById('lastTokens').textContent = lastRequestTokens || '--';
+            document.getElementById('lastTime').textContent = lastRequestTime ? `${lastRequestTime}ms` : '--';
+        }
+
+        // Start periodic metrics updates
+        function startMetricsUpdates() {
+            if (metricsInterval) clearInterval(metricsInterval);
+            
+            // Initial fetch
+            fetchMetrics();
+            
+            // Update every 2 seconds
+            metricsInterval = setInterval(fetchMetrics, 2000);
+        }
+
+        // Stop metrics updates
+        function stopMetricsUpdates() {
+            if (metricsInterval) {
+                clearInterval(metricsInterval);
+                metricsInterval = null;
+            }
+        }
+
         // Check service status
         async function checkServices() {
             console.log('Checking services...');
@@ -293,6 +603,10 @@
             btn.disabled = true;
             btn.textContent = '🔄 Analyzing...';
 
+            // Track request metrics
+            const startTime = performance.now();
+            const tokenCount = text.split(/\s+/).length;
+
             try {
                 console.log('Sending request to /api/analyze');
                 const response = await fetch('/api/analyze', {
@@ -302,6 +616,13 @@
                     },
                     body: JSON.stringify({ text: text })
                 });
+
+                const endTime = performance.now();
+                const responseTime = Math.round(endTime - startTime);
+
+                // Update last request metrics
+                lastRequestTokens = tokenCount;
+                lastRequestTime = responseTime;
 
                 console.log('Response status:', response.status);
                 if (!response.ok) {
@@ -514,6 +835,10 @@
                     }
                 });
             }
+            
+            // Initialize metrics panel (start pinned and visible)
+            isPanelPinned = true;
+            startMetricsUpdates();
         });
 
         // Check services every 30 seconds

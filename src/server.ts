@@ -111,6 +111,24 @@ app.get('/api/health', async (req: Request, res: Response): Promise<void> => {
     }
 });
 
+// Proxy route for metrics
+app.get('/api/metrics', async (req: Request, res: Response): Promise<void> => {
+    try {
+        const response = await axios.get(`${FASTAPI_URL}/metrics`, {
+            timeout: 5000
+        });
+        res.json(response.data);
+    } catch (error) {
+        const axiosError = error as AxiosError;
+        const errorResponse = {
+            error: 'Failed to fetch metrics from AI service',
+            details: axiosError.message,
+            timestamp: new Date().toISOString()
+        };
+        res.status(503).json(errorResponse);
+    }
+});
+
 // Proxy route for sentiment analysis
 app.post('/api/analyze', async (req: Request, res: Response): Promise<void> => {
     try {
