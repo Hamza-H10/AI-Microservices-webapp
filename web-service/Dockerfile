@@ -1,5 +1,13 @@
+# Web Service Dockerfile
+# Docker configuration for Node.js/Express web service
+
 # Use official Node.js runtime as base image
 FROM node:20-alpine
+
+# Metadata
+LABEL maintainer="AI-Microservices-webapp"
+LABEL description="Web Service for AI Microservices webapp"
+LABEL version="1.0.0"
 
 # Set environment variables
 ENV NODE_ENV=production
@@ -14,15 +22,21 @@ RUN apk add --no-cache python3 make g++
 COPY package*.json ./
 COPY tsconfig.json ./
 
-# Install dependencies
-RUN npm ci --only=production
+# Install all dependencies (including dev dependencies for building)
+RUN npm ci
+
+# Install TypeScript globally to ensure it's available
+RUN npm install -g typescript
 
 # Copy TypeScript source code
 COPY src/ ./src/
 COPY public/ ./public/
 
-# Build TypeScript
-RUN npm run build
+# Build TypeScript - now tsc should be globally available
+RUN tsc
+
+# Remove development dependencies to reduce image size
+RUN npm prune --production
 
 # Remove development dependencies to reduce image size
 RUN npm prune --production

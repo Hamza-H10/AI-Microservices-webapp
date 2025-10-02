@@ -1,0 +1,37 @@
+# Conversational AI Microservice Requirements
+# Python dependencies for LangChain, LangGraph, and Gemini integration
+
+# Core FastAPI and web framework
+fastapi>=0.104.0,<1.0.0
+uvicorn[standard]>=0.24.0,<1.0.0
+pydantic>=2.5.0,<3.0.0
+python-multipart>=0.0.6
+
+# LangChain and LangGraph for conversational AI
+langchain>=0.1.0
+langchain-google-genai>=1.0.0
+langgraph>=0.0.40
+langchain-core>=0.1.0
+langchain-community>=0.0.20
+
+# Google Generative AI (Gemini)
+google-generativeai>=0.3.0
+
+# System monitoring for metrics
+psutil>=5.9.0
+
+# HTTP client for API calls
+httpx>=0.24.0
+aiohttp>=3.8.0
+
+# Environment variables management
+python-dotenv>=1.0.0
+
+# JSON and data handling
+orjson>=3.9.0
+
+# Development and testing
+pytest>=7.0.0
+pytest-asyncio>=0.21.0
+
+# To install: pip install -r requirements.txt

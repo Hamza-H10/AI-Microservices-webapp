@@ -1,10 +1,10 @@
 services:
-  # FastAPI AI Microservice
-  ai-service:
+  # FastAPI Sentiment Analysis Microservice
+  sentiment-analysis:
     build:
-      context: .
-      dockerfile: Dockerfile.ai
-    container_name: sentiment-ai-service
+      context: ./microservices/sentiment-analysis
+      dockerfile: Dockerfile
+    container_name: sentiment-analysis-service
     ports:
       - "8000:8000"
     environment:
@@ -30,19 +30,43 @@ services:
       retries: 3
       start_period: 40s
 
+  # FastAPI Conversational AI Microservice
+  conversational-ai:
+    build:
+      context: ./microservices/conversational-ai
+      dockerfile: Dockerfile
+    container_name: conversational-ai-service
+    ports:
+      - "8001:8001"
+    environment:
+      - PYTHONPATH=/app
+      - GEMINI_API_KEY=${GEMINI_API_KEY}  # Set this in your .env file
+    networks:
+      - sentiment-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
   # Node.js Web Service
   web-service:
     build:
-      context: .
-      dockerfile: Dockerfile.web
-    container_name: sentiment-web-service
+      context: ./web-service
+      dockerfile: Dockerfile
+    container_name: web-service
     ports:
       - "3000:3000"
     environment:
       - NODE_ENV=production
-      - AI_SERVICE_URL=http://ai-service:8000
+      - AI_SERVICE_URL=http://sentiment-analysis:8000
+      - CONVERSATIONAL_AI_URL=http://conversational-ai:8001
     depends_on:
-      ai-service:
+      sentiment-analysis:
+        condition: service_healthy
+      conversational-ai:
         condition: service_healthy
     networks:
       - sentiment-network

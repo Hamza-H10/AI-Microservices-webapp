@@ -51,13 +51,15 @@ interface ApiInfoResponse {
     endpoints: Record<string, string>;
     microservices: {
         web_service: string;
-        ai_service: string;
+        sentiment_analysis: string;
+        conversational_ai: string;
     };
 }
 
 const app: Application = express();
 const PORT: number = parseInt(process.env.PORT || '3000', 10);
-const FASTAPI_URL: string = process.env.FASTAPI_URL || 'http://localhost:8000';
+const SENTIMENT_ANALYSIS_URL: string = process.env.AI_SERVICE_URL || process.env.FASTAPI_URL || 'http://localhost:8000';
+const CONVERSATIONAL_AI_URL: string = process.env.CONVERSATIONAL_AI_URL || 'http://localhost:8001';
 
 // Middleware
 app.use(helmet({
@@ -84,7 +86,7 @@ app.get('/health', (req: Request, res: Response): void => {
         status: 'healthy',
         service: 'Node.js/Express Web Server',
         timestamp: new Date().toISOString(),
-        fastapi_url: FASTAPI_URL
+        fastapi_url: SENTIMENT_ANALYSIS_URL
     };
     res.json(healthResponse);
 });
@@ -92,7 +94,7 @@ app.get('/health', (req: Request, res: Response): void => {
 // Proxy route for FastAPI health check
 app.get('/api/health', async (req: Request, res: Response): Promise<void> => {
     try {
-        const response = await axios.get(`${FASTAPI_URL}/health`, {
+        const response = await axios.get(`${SENTIMENT_ANALYSIS_URL}/health`, {
             timeout: 5000
         });
         const healthResponse: CombinedHealthResponse = {
@@ -114,7 +116,7 @@ app.get('/api/health', async (req: Request, res: Response): Promise<void> => {
 // Proxy route for metrics
 app.get('/api/metrics', async (req: Request, res: Response): Promise<void> => {
     try {
-        const response = await axios.get(`${FASTAPI_URL}/metrics`, {
+        const response = await axios.get(`${SENTIMENT_ANALYSIS_URL}/metrics`, {
             timeout: 5000
         });
         res.json(response.data);
@@ -122,6 +124,27 @@ app.get('/api/metrics', async (req: Request, res: Response): Promise<void> => {
         const axiosError = error as AxiosError;
         const errorResponse = {
             error: 'Failed to fetch metrics from AI service',
+            details: axiosError.message,
+            timestamp: new Date().toISOString()
+        };
+        res.status(503).json(errorResponse);
+    }
+});
+
+// Proxy route for conversational AI chat
+app.post('/api/chat', async (req: Request, res: Response): Promise<void> => {
+    try {
+        const response = await axios.post(`${CONVERSATIONAL_AI_URL}/chat`, req.body, {
+            timeout: 30000,
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        res.json(response.data);
+    } catch (error) {
+        const axiosError = error as AxiosError;
+        const errorResponse = {
+            error: 'Failed to communicate with conversational AI service',
             details: axiosError.message,
             timestamp: new Date().toISOString()
         };
@@ -151,7 +174,7 @@ app.post('/api/analyze', async (req: Request, res: Response): Promise<void> => {
         }
 
         // Forward request to FastAPI service
-        const response = await axios.post<AnalyzeResponse>(`${FASTAPI_URL}/analyze`, {
+        const response = await axios.post<AnalyzeResponse>(`${SENTIMENT_ANALYSIS_URL}/analyze`, {
             text: text.trim()
         }, {
             timeout: 30000,
@@ -238,7 +261,7 @@ app.post('/api/batch-analyze', async (req: Request, res: Response): Promise<void
         }
 
         // Forward request to FastAPI service
-        const response = await axios.post<BatchAnalyzeResponse>(`${FASTAPI_URL}/batch-analyze`, {
+        const response = await axios.post<BatchAnalyzeResponse>(`${SENTIMENT_ANALYSIS_URL}/batch-analyze`, {
             texts: texts.map(text => text.trim())
         }, {
             timeout: 60000,
@@ -281,26 +304,34 @@ app.post('/api/batch-analyze', async (req: Request, res: Response): Promise<void
     }
 });
 
-// Serve main web interface
+// Serve main web interface (Chat page)
 app.get('/', (req: Request, res: Response): void => {
     res.sendFile(path.join(__dirname, '../public', 'index.html'));
+});
+
+// Serve sentiment analysis page
+app.get('/sentiment', (req: Request, res: Response): void => {
+    res.sendFile(path.join(__dirname, '../public', 'sentiment.html'));
 });
 
 // API information endpoint
 app.get('/api', (req: Request, res: Response): void => {
     const apiInfo: ApiInfoResponse = {
-        service: 'Sentiment Analysis Web Service',
+        service: 'AI Microservices Web Gateway',
         version: '1.0.0',
         endpoints: {
-            'GET /': 'Web interface',
+            'GET /': 'Conversational AI Chat Interface',
+            'GET /sentiment': 'Sentiment Analysis Tool',
             'GET /health': 'Node.js service health',
             'GET /api/health': 'Combined health check (Node.js + FastAPI)',
+            'POST /api/chat': 'Conversational AI chat endpoint',
             'POST /api/analyze': 'Analyze single text sentiment',
             'POST /api/batch-analyze': 'Analyze multiple texts sentiment'
         },
         microservices: {
             web_service: `http://localhost:${PORT}`,
-            ai_service: FASTAPI_URL
+            sentiment_analysis: SENTIMENT_ANALYSIS_URL,
+            conversational_ai: CONVERSATIONAL_AI_URL
         }
     };
     res.json(apiInfo);
@@ -336,14 +367,17 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction): void => {
 // Start server
 app.listen(PORT, (): void => {
     console.log(`🚀 Node.js/Express Web Server running on http://localhost:${PORT}`);
-    console.log(`🔗 FastAPI AI Service URL: ${FASTAPI_URL}`);
-    console.log(`📊 Web Interface: http://localhost:${PORT}`);
+    console.log(`🔗 Sentiment Analysis Service URL: ${SENTIMENT_ANALYSIS_URL}`);
+    console.log(`🤖 Conversational AI Service URL: ${CONVERSATIONAL_AI_URL}`);
+    console.log(`📊 Chat Interface: http://localhost:${PORT}`);
+    console.log(`📈 Sentiment Analysis: http://localhost:${PORT}/sentiment`);
     console.log(`🏥 Health Check: http://localhost:${PORT}/health`);
     console.log(`🤖 AI Health Check: http://localhost:${PORT}/api/health`);
     console.log('\n📋 Microservices Architecture:');
     console.log(`   ├── Web Service (Node.js): :${PORT}`);
-    console.log(`   └── AI Service (FastAPI): :8000`);
-    console.log('\n🛠️  Make sure FastAPI service is running on port 8000!');
+    console.log(`   ├── Sentiment Analysis (FastAPI): :8000`);
+    console.log(`   └── Conversational AI (FastAPI): :8001`);
+    console.log('\n🛠️  Make sure both FastAPI services are running!');
 });
 
 export default app;

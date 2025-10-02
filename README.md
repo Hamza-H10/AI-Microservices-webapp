@@ -1,39 +1,97 @@
-# AI Microservices Webapp - Sentiment Analysis
+# AI Microservices Webapp - Conversational AI & Sentiment Analysis
 
-A modern microservices-based web application for sentiment analysis, featuring a Node.js/Express frontend and a FastAPI AI backend with GPU acceleration.
+A modern microservices-based web application featuring conversational AI chatbot and sentiment analysis, built with Node.js/Express frontend and FastAPI AI backends with GPU acceleration.
 
 ## 🚀 Features
 
-- **Microservices Architecture**: Separate Node.js web server and FastAPI AI service
-- **GPU-Accelerated AI**: CUDA-enabled PyTorch for fast sentiment analysis
+### Conversational AI Chatbot
+
+- **ChatGPT-style Interface**: Modern chat interface with typing indicators and message threading
+- **LangChain & LangGraph**: Advanced conversational AI workflow management
+- **Google Gemini Integration**: Powered by Google's Gemini 1.5 Flash model
+- **Persistent Chat History**: Browser-based localStorage for conversation continuity
+- **Real-time Streaming**: Live response generation with typing indicators
+
+### Sentiment Analysis
+
 - **Real-time Analysis**: Instant sentiment analysis with confidence scores
 - **Batch Processing**: Analyze multiple texts simultaneously
-- **Modern Web Interface**: Interactive HTML5 frontend with charts and visualization
+- **GPU-Accelerated AI**: CUDA-enabled PyTorch for fast processing
+- **Interactive Visualization**: Charts and metrics display
+
+### Platform Features
+
+- **Microservices Architecture**: Scalable service-oriented design
+- **Modern Web Interface**: Responsive HTML5 frontend with navigation
 - **Health Monitoring**: Service health checks and status endpoints
 - **CORS Support**: Cross-origin resource sharing for seamless API communication
+
+## 🏗️ Project Structure
+
+```
+AI-Microservices-webapp/
+├── microservices/
+│   ├── sentiment-analysis/          # Sentiment Analysis AI Microservice
+│   │   ├── main.py                  # FastAPI application
+│   │   ├── sentiment_analysis.py    # Core sentiment analysis logic
+│   │   ├── gpu_benchmark.py         # GPU performance testing
+│   │   ├── requirements.txt         # Python dependencies
+│   │   ├── Dockerfile              # Container configuration
+│   │   └── README.md               # Service documentation
+│   └── conversational-ai/          # Conversational AI Microservice
+│       ├── main.py                  # FastAPI chatbot application
+│       ├── requirements.txt         # Python AI dependencies
+│       └── Dockerfile              # Container configuration
+├── web-service/                    # Node.js Web Service
+│   ├── src/
+│   │   └── server.ts               # Express server with API routing
+│   ├── public/
+│   │   ├── index.html              # Conversational AI chat interface
+│   │   └── sentiment.html          # Sentiment analysis interface
+│   ├── package.json                # Node.js dependencies
+│   ├── tsconfig.json              # TypeScript configuration
+│   └── Dockerfile                 # Container configuration
+├── docker-compose.yml             # Multi-service orchestration
+├── .env.example                   # Environment variables template
+├── README.md                      # Main documentation
+└── models/                        # Model cache (created at runtime)
+```
 
 ## 🏗️ Architecture
 
 ```
-┌─────────────────┐    HTTP/REST    ┌─────────────────┐
-│   Frontend      │ ◄────────────── │  Node.js/Express│
-│   (HTML/JS)     │                 │   Web Server    │
-└─────────────────┘                 │   (Port 3000)   │
-                                    └─────────┬───────┘
-                                              │ HTTP API
-                                              ▼
-                                    ┌─────────────────┐
-                                    │   FastAPI AI    │
-                                    │   Microservice  │
-                                    │   (Port 8000)   │
-                                    │  GPU-Accelerated │
-                                    └─────────────────┘
+┌─────────────────┐
+│   Chat UI       │    HTTP/REST     ┌─────────────────┐
+│ (index.html)    │ ◄──────────────► │  Node.js/Express│
+└─────────────────┘                  │   Web Gateway   │
+                                     │   (Port 3000)   │
+┌─────────────────┐                  └─────────┬───────┘
+│ Sentiment UI    │                            │
+│(sentiment.html) │ ◄──────────────────────────┘
+└─────────────────┘                            │
+                                               │ Proxy APIs
+                         ┌─────────────────────┼─────────────────────┐
+                         ▼                     ▼                     ▼
+               ┌─────────────────┐   ┌─────────────────┐   ┌─────────────────┐
+               │Conversational AI│   │ Sentiment Analysis│   │  Future Services│
+               │  Microservice   │   │   Microservice   │   │      (TBD)      │
+               │   (Port 8001)   │   │   (Port 8000)   │   │                 │
+               │ LangChain+Gemini│   │  GPU-Accelerated │   │                 │
+               └─────────────────┘   └─────────────────┘   └─────────────────┘
 ```
+
+### Microservices Overview
+
+- **Web Gateway** (`web-service/`): Node.js/Express frontend with TypeScript and API routing
+- **Conversational AI** (`microservices/conversational-ai/`): FastAPI chatbot with LangChain, LangGraph, and Google Gemini
+- **Sentiment Analysis** (`microservices/sentiment-analysis/`): FastAPI AI service with transformer models
+- **Future Services**: Architecture ready for additional microservices (e.g., text summarization, translation, etc.)
 
 ## 📋 Prerequisites
 
 - **Node.js** (v16 or higher)
 - **Python** (3.11 recommended)
+- **Google Gemini API Key** ([Get it here](https://makersuite.google.com/app/apikey))
 - **CUDA-compatible GPU** (optional, for GPU acceleration)
 - **Git**
 
@@ -46,78 +104,146 @@ git clone https://github.com/Hamza-H10/AI-Microservices-webapp.git
 cd AI-Microservices-webapp
 ```
 
-### 2. Install Node.js Dependencies
+### 2. Set Up Environment Variables
 
 ```bash
+# Copy the environment template
+cp .env.example .env
+
+# Edit .env and add your Google Gemini API key
+# GEMINI_API_KEY=your_actual_api_key_here
+```
+
+### 3. Install Dependencies
+
+#### Web Service (Node.js)
+
+```bash
+cd web-service
 npm install
 ```
 
-### 3. Install Python Dependencies
+#### Sentiment Analysis Microservice (Python)
 
 ```bash
+cd microservices/sentiment-analysis
+pip install -r requirements.txt
+```
+
+#### Conversational AI Microservice (Python)
+
+```bash
+cd microservices/conversational-ai
 pip install -r requirements.txt
 ```
 
 ## 🚀 Running the Application
 
-### Option 1: Development Mode (Recommended)
+### Option 1: Docker (Recommended)
 
-1. **Start the AI Microservice (FastAPI)**:
+Run the entire application with one command:
+
+```bash
+docker-compose up --build
+```
+
+Services will be available at:
+
+- **Web Interface**: `http://localhost:3000`
+- **Sentiment Analysis API**: `http://localhost:8000`
+- **API Documentation**: `http://localhost:8000/docs`
+
+### Option 2: Development Mode
+
+1. **Start the Sentiment Analysis Microservice**:
 
    ```bash
+   cd microservices/sentiment-analysis
    python main.py
    ```
 
    The AI service will be available at `http://localhost:8000`
 
-2. **Start the Web Server (Node.js)**:
+2. **Start the Web Server**:
    ```bash
+   cd web-service
    npm run dev
    ```
    The web application will be available at `http://localhost:3000`
 
-### Option 2: Production Mode
+### Option 3: Production Mode
 
-1. **Build the TypeScript**:
+1. **Build and Start Web Service**:
 
    ```bash
+   cd web-service
    npm run build
+   npm start
    ```
 
 2. **Start the AI Service**:
 
    ```bash
+   cd microservices/sentiment-analysis
    python main.py
    ```
 
 3. **Start the Web Server**:
+
    ```bash
-   npm start
+
    ```
 
 ## 🔧 Available Scripts
 
-### Node.js Scripts
+### Web Service (Node.js)
 
-- `npm run dev` - Start development server with hot reload
-- `npm run build` - Build TypeScript to JavaScript
-- `npm start` - Start production server
-- `npm run watch` - Watch TypeScript files for changes
+```bash
+cd web-service
+npm run dev      # Start development server with hot reload
+npm run build    # Build TypeScript to JavaScript
+npm start        # Start production server
+npm run watch    # Watch TypeScript files for changes
+```
 
-### Python Scripts
+### Sentiment Analysis Microservice (Python)
 
-- `python main.py` - Start FastAPI AI microservice
-- `python sentiment_analysis.py` - Standalone sentiment analysis script
-- `python gpu_benchmark.py` - GPU performance benchmarking
+```bash
+cd microservices/sentiment-analysis
+python main.py                  # Start FastAPI microservice
+python sentiment_analysis.py    # Standalone sentiment analysis
+python gpu_benchmark.py         # GPU performance benchmarking
+```
+
+### Docker Commands
+
+```bash
+# Start all services
+docker-compose up --build
+
+# Start in background
+docker-compose up -d
+
+# Stop all services
+docker-compose down
+
+# View logs
+docker-compose logs -f
+
+# Individual service logs
+docker-compose logs -f sentiment-analysis
+docker-compose logs -f web-service
+```
 
 ## 📚 API Endpoints
 
-### FastAPI AI Service (Port 8000)
+### Sentiment Analysis Microservice (Port 8000)
 
 | Endpoint   | Method | Description                    |
 | ---------- | ------ | ------------------------------ |
 | `/`        | GET    | Service information            |
 | `/health`  | GET    | Health check                   |
+| `/metrics` | GET    | System and performance metrics |
 | `/analyze` | POST   | Single text sentiment analysis |
 | `/batch`   | POST   | Batch text sentiment analysis  |
 | `/docs`    | GET    | Interactive API documentation  |
