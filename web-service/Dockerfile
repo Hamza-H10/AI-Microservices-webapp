@@ -23,7 +23,7 @@ COPY package*.json ./
 COPY tsconfig.json ./
 
 # Install all dependencies (including dev dependencies for building)
-RUN npm ci
+RUN npm ci --include=dev
 
 # Install TypeScript globally to ensure it's available
 RUN npm install -g typescript
